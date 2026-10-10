@@ -53,9 +53,19 @@ export default function Dashboard() {
       try {
         const res = await fetch('/api/ingest', { method: 'POST' });
         if (res.ok) {
-          const resGet = await fetch('/api/releases');
-          const data = await resGet.json();
-          setReleases(data.releases || []);
+          const data = await res.json();
+          
+          if (data.errors && data.errors.length > 0) {
+            setErrorMsg(`Some sources failed: ${data.errors.join(', ')}`);
+          }
+          
+          if (data.processed && data.processed.length > 0) {
+            setReleases(prev => {
+              const newReleases = [...data.processed];
+              const existingReleases = prev.filter(r => !newReleases.some(nr => nr.id === r.id));
+              return [...newReleases, ...existingReleases];
+            });
+          }
         } else {
           setErrorMsg('Ingestion failed. Rate limit or upstream error.');
         }
